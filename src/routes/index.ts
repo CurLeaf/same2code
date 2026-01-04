@@ -1,11 +1,6 @@
 import { Request, Response } from 'express';
+import express from 'express';
 import * as resolvers from './resolvers';
-import * as resolversV2 from './v2/resolvers';
-import multer from 'multer';
-import bodyParser from 'body-parser';
-
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
 
 type Route = {
     path: string,
@@ -14,31 +9,42 @@ type Route = {
     handler: (req: Request, res: Response) => Promise<any> | any | void
 }
 
-const routes: Array<Route> = [{
-    path: '/category/predict/:platform',
-    method: 'post',
-    middlewares: [bodyParser.urlencoded(), bodyParser.json()],
-    handler: resolvers.queryCategory
-}, {
-    path: '/category/:platform',
-    method: 'post',
-    middlewares: [upload.single("file")],
-    handler: resolvers.createVectors
-}, {
-    path: '/category/:platform',
-    method: 'delete',
-    middlewares: [],
-    handler: resolvers.deleteVectors
-}, {
-    path: '/v2/category/predict/:platform',
-    method: 'post',
-    middlewares: [bodyParser.urlencoded(), bodyParser.json()],
-    handler: resolversV2.queryCategory
-}, {
-    path: '/v2/category/:platform',
-    method: 'post',
-    middlewares: [upload.single("file")],
-    handler: resolversV2.createVectors
-}]
+const routes: Array<Route> = [
+    // 健康检查
+    {
+        path: '/health',
+        method: 'get',
+        middlewares: [],
+        handler: resolvers.healthCheck
+    },
+    // 查询类目（Top-K）
+    {
+        path: '/category/predict',
+        method: 'post',
+        middlewares: [express.json()],
+        handler: resolvers.queryCategory
+    },
+    // 构建索引
+    {
+        path: '/category/index',
+        method: 'post',
+        middlewares: [express.json()],
+        handler: resolvers.buildIndex
+    },
+    // 加载索引
+    {
+        path: '/category/load',
+        method: 'post',
+        middlewares: [],
+        handler: resolvers.loadCategoryIndex
+    },
+    // 删除索引
+    {
+        path: '/category/index',
+        method: 'delete',
+        middlewares: [],
+        handler: resolvers.deleteCategoryIndex
+    }
+];
 
 export default routes;

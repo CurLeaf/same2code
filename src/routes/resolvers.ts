@@ -1,97 +1,126 @@
 import { Request, Response } from "express";
-import { searchInVectors, createCategoryVector, deleteNamespace } from '../lib/pinecone'
-import { createEmbedding } from "../lib/openai";
-import { parseCSV } from "../utils";
-import throat from 'throat';
-import { v4 as uuidv4 } from 'uuid';
+import { buildIndexFromTSV, loadIndex, searchTopK, isIndexLoaded, deleteIndex } from '../lib/vector';
+import path from 'path';
 
-const availablePlatforms = [
-    "shopify",
-    "amazon",
-    "ciceksepeti",
-    "hepsiburada",
-    "trendyol"
-]
-
+/**
+ * 查询商品类目（返回 Top-K）
+ * POST /category/predict
+ * Body: { text: string, k?: number }
+ */
 export const queryCategory = async (req: Request, res: Response) => {
-    if (availablePlatforms.includes(req.params.platform) === false) {
-        return res.status(400).json({
-            success: false, data: null,
-            error: 'The given platform is not available. Available platforms' + availablePlatforms.join(', ')
-        })
-    }
-    if (!req.body.input) {
-        return res.status(400).json({ success: false, data: null, error: 'Input data is required' })
-    }
-    const { platform } = req.params;
-    const { input, deepSearch, lang } = req.body;
-
-    const embedding = await createEmbedding({ input: String(input) })
-    const vector: number[] = embedding.data[0].embedding;
-
-    const namespace = `${platform}${lang ? `_${lang}` : ''}`;
-    let response = await searchInVectors(namespace, vector);
-
-    if (deepSearch === "true") {
-        const uid = uuidv4();
-        if (!response?.matches) return res.json({ success: false, data: null, error: "No matches found" })
-
-        const initial_matches: any[] = response.matches;
-        const temp_namespace = `temp_${uid}`
-        await Promise.all((initial_matches).map((category, index) => {
-            const deepestCategory = category.metadata.categoryName.split('>').slice(-1)[0].trim();
-            return createCategoryVector(temp_namespace, String(category.metadata.id), deepestCategory)
-        }))
-
-        response = await searchInVectors(temp_namespace, vector);
-        response.matches = response.matches?.map((match: any) => {
-            const initial_match = initial_matches.find((m) => m.metadata.id === match.metadata.id)
-            return {
-                ...match,
-                metadata: {
-                    ...match.metadata,
-                    categoryName: initial_match.metadata.categoryName
-                }
-            }
-        })
-        deleteNamespace(temp_namespace)
-    }
-
-    return res.json({
-        success: true,
-        data: response.matches,
-        error: null
-    })
-}
-
-export const createVectors = async (req: Request, res: Response) => {
-    if (availablePlatforms.includes(req.params.platform) === false) {
-        return res.status(400).json({
-            success: false, data: null,
-            error: 'The given platform is not available. Available platforms' + availablePlatforms.join(', ')
-        })
-    }
-    if (!req.file) return res.status(400).json({ error: `You didn't provide a file` });
-
-    const platform = req.params.platform;
-    const { lang } = req.body;
-    const fileContent = req.file.buffer.toString('utf-8');
-
-    const categories = parseCSV(fileContent);
-    categories.forEach(throat(50, async (category, index) => {
-        const namespace = `${platform}${lang ? `_${lang}` : ''}`;
-        const response = await createCategoryVector(namespace, category.id, category.name)
-        if (!response || response.raw.status !== 200) {
-            console.log(`ER: [${index + 1}/${categories.length}] ${category.name} couldn't be created`)
-        } else {
-            console.log(`OK: [${index + 1}/${categories.length}] ${category.name} is created`)
+    try {
+        const { text, k = 5 } = req.body;
+        
+        if (!text || typeof text !== 'string') {
+            return res.status(400).json({
+                success: false,
+                error: 'text 字段必填且必须为字符串'
+            });
         }
-    }))
+        
+        // 检查索引是否已加载
+        if (!isIndexLoaded()) {
+            try {
+                await loadIndex('default');
+            } catch (e) {
+                return res.status(503).json({
+                    success: false,
+                    error: '索引未加载，请先构建索引'
+                });
+            }
+        }
+        
+        const topK = await searchTopK(text, Number(k));
+        
+        return res.json({
+            success: true,
+            topK
+        });
+    } catch (error: any) {
+        console.error('[Error] queryCategory:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || '内部错误'
+        });
+    }
+};
 
-    return res.json({ success: true, data: "OK", error: null })
-}
+/**
+ * 构建向量索引
+ * POST /category/index
+ * Body: { tsvPath?: string }
+ */
+export const buildIndex = async (req: Request, res: Response) => {
+    try {
+        const { tsvPath } = req.body;
+        
+        // 默认使用 data/categories_standard.tsv
+        const filePath = tsvPath || path.join(process.cwd(), 'data', 'categories_standard.tsv');
+        
+        await buildIndexFromTSV(filePath, 'default');
+        
+        return res.json({
+            success: true,
+            message: '索引构建完成'
+        });
+    } catch (error: any) {
+        console.error('[Error] buildIndex:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || '索引构建失败'
+        });
+    }
+};
 
-export const deleteVectors = async (req: Request, res: Response) => {
-    const response = await deleteNamespace(req.params.platform);
-    return res.json(response);
-}
+/**
+ * 加载索引
+ * POST /category/load
+ */
+export const loadCategoryIndex = async (req: Request, res: Response) => {
+    try {
+        await loadIndex('default');
+        
+        return res.json({
+            success: true,
+            message: '索引加载完成'
+        });
+    } catch (error: any) {
+        console.error('[Error] loadIndex:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || '索引加载失败'
+        });
+    }
+};
+
+/**
+ * 删除索引
+ * DELETE /category/index
+ */
+export const deleteCategoryIndex = async (req: Request, res: Response) => {
+    try {
+        deleteIndex('default');
+        
+        return res.json({
+            success: true,
+            message: '索引已删除'
+        });
+    } catch (error: any) {
+        console.error('[Error] deleteIndex:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || '索引删除失败'
+        });
+    }
+};
+
+/**
+ * 健康检查
+ * GET /health
+ */
+export const healthCheck = async (req: Request, res: Response) => {
+    return res.json({
+        status: 'ok',
+        indexLoaded: isIndexLoaded()
+    });
+};

@@ -5,20 +5,20 @@ dotenv.config();
 
 export const env = createEnv({
     server: {
-        OPENAI_API_KEY: z.string().nonempty(),
-        PINECONE_API_KEY: z.string().nonempty(),
-        PINECONE_ENVIRONMENT: z.string().nonempty(),
-        PINECONE_INDEX_NAME: z.string().nonempty(),
-        OPENAI_ORGANIZATION: z.string().nonempty(),
+        // Embedding API 配置
+        EMBEDDING_BASE_URL: z.string().nonempty(),
+        EMBEDDING_API_KEY: z.string().nonempty(),
+        EMBEDDING_MODEL_NAME: z.string().nonempty(),
+        EMBEDDING_DIMENSION: z.string().nonempty().default("1024"),
+        // 服务端口
         PORT: z.string().nonempty().default("6006"),
     },
     client: {},
     runtimeEnv: {
-        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-        OPENAI_ORGANIZATION: process.env.OPENAI_ORGANIZATION,
-        PINECONE_API_KEY: process.env.PINECONE_API_KEY,
-        PINECONE_ENVIRONMENT: process.env.PINECONE_ENVIRONMENT,
-        PINECONE_INDEX_NAME: process.env.PINECONE_INDEX_NAME,
+        EMBEDDING_BASE_URL: process.env.EMBEDDING_BASE_URL,
+        EMBEDDING_API_KEY: process.env.EMBEDDING_API_KEY,
+        EMBEDDING_MODEL_NAME: process.env.EMBEDDING_MODEL_NAME,
+        EMBEDDING_DIMENSION: process.env.EMBEDDING_DIMENSION,
         PORT: process.env.PORT,
     }
 });
