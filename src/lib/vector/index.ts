@@ -67,7 +67,7 @@ export const buildIndexFromTSV = async (tsvPath: string, indexName: string = 'de
     // 2. 生成 embeddings
     const texts = categories.map(c => c.text);
     console.log(`[Index] 开始生成 embeddings...`);
-    const embeddings = await createEmbeddingBatch(texts, 100);
+    const embeddings = await createEmbeddingBatch(texts, 32);
     
     // 3. 构建 HNSW 索引
     console.log(`[Index] 构建 HNSW 索引...`);

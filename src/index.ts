@@ -1,3 +1,9 @@
+// 清除代理环境变量，避免被系统代理拦截
+delete process.env.HTTP_PROXY;
+delete process.env.HTTPS_PROXY;
+delete process.env.http_proxy;
+delete process.env.https_proxy;
+
 import express from 'express';
 import { env } from './env';
 import routes from './routes';

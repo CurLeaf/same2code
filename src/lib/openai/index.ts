@@ -1,5 +1,11 @@
 import { env } from "../../env";
 import fetch from "node-fetch";
+import https from "https";
+
+// 创建不使用代理的 agent
+const httpsAgent = new https.Agent({
+    rejectUnauthorized: true,
+});
 
 // 从环境变量读取配置
 export const EMBEDDING_BASE_URL = env.EMBEDDING_BASE_URL;
@@ -34,7 +40,9 @@ export const createEmbedding = async ({ input }: { input: string | string[] }): 
         body: JSON.stringify({
             model: EMBEDDING_MODEL,
             input: input
-        })
+        }),
+        agent: httpsAgent,  // 绕过系统代理
+        timeout: 60000      // 60秒超时
     });
 
     if (!response.ok) {
@@ -48,12 +56,12 @@ export const createEmbedding = async ({ input }: { input: string | string[] }): 
 /**
  * 批量生成 embeddings（带并发控制）
  * @param texts 文本数组
- * @param batchSize 每批大小（默认 100）
+ * @param batchSize 每批大小（默认 32，SiliconFlow 限制 64）
  * @returns 所有 embedding 向量
  */
 export const createEmbeddingBatch = async (
     texts: string[],
-    batchSize: number = 100
+    batchSize: number = 32
 ): Promise<number[][]> => {
     const embeddings: number[][] = [];
     

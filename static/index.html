@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品类目分类测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+        .card h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .card h2 .emoji {
+            margin-right: 8px;
+        }
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+        .status-dot.online { background: #4caf50; }
+        .status-dot.offline { background: #f44336; }
+        .status-dot.loading { background: #ff9800; animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #cb2d3e 0%, #ef473a 100%);
+            color: white;
+        }
+        .input-group {
+            margin-bottom: 16px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .input-row {
+            display: flex;
+            gap: 16px;
+        }
+        .input-row .input-group {
+            flex: 1;
+        }
+        .input-row .input-group.small {
+            flex: 0 0 120px;
+        }
+        .result-box {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .result-box pre {
+            color: #d4d4d4;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin: 0;
+        }
+        .result-box .success { color: #4caf50; }
+        .result-box .error { color: #f44336; }
+        .result-box .info { color: #2196f3; }
+        .result-item {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        .result-item:last-child {
+            margin-bottom: 0;
+        }
+        .result-item .score {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .result-item .id {
+            color: #9cdcfe;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .hidden { display: none; }
+        .tip {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            color: #856404;
+            font-size: 14px;
+        }
+        .tip strong {
+            color: #664d03;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏷️ 商品类目分类测试</h1>
+
+        <!-- 状态卡片 -->
+        <div class="card">
+            <h2><span class="emoji">📊</span>服务状态</h2>
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-dot" id="serverStatus"></div>
+                    <span>服务: <strong id="serverStatusText">检测中...</strong></span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot" id="indexStatus"></div>
+                    <span>索引: <strong id="indexStatusText">检测中...</strong></span>
+                </div>
+                <button class="btn btn-primary" onclick="checkHealth()">🔄 刷新状态</button>
+            </div>
+        </div>
+
+        <!-- 索引管理 -->
+        <div class="card">
+            <h2><span class="emoji">🗂️</span>索引管理</h2>
+            <div class="tip">
+                <strong>提示：</strong>首次使用需要构建索引，约 11764 条类目，预计需要几分钟。构建完成后会自动保存，下次只需加载即可。
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-success" id="btnBuild" onclick="buildIndex()">
+                    🔨 构建索引
+                </button>
+                <button class="btn btn-primary" id="btnLoad" onclick="loadIndex()">
+                    📂 加载索引
+                </button>
+                <button class="btn btn-danger" id="btnDelete" onclick="deleteIndex()">
+                    🗑️ 删除索引
+                </button>
+            </div>
+            <div class="result-box" id="indexResult">
+                <pre class="info">等待操作...</pre>
+            </div>
+        </div>
+
+        <!-- 类目查询 -->
+        <div class="card">
+            <h2><span class="emoji">🔍</span>类目查询</h2>
+            <div class="input-row">
+                <div class="input-group">
+                    <label>商品文本</label>
+                    <textarea id="queryText" placeholder="输入商品标题或描述，例如：猫粮 皇家 成猫 10kg"></textarea>
+                </div>
+                <div class="input-group small">
+                    <label>返回数量 (K)</label>
+                    <input type="number" id="queryK" value="5" min="1" max="20">
+                </div>
+            </div>
+            <button class="btn btn-primary" id="btnQuery" onclick="queryCategory()">
+                🚀 查询类目
+            </button>
+            <div class="result-box" id="queryResult">
+                <pre class="info">输入商品文本后点击查询</pre>
+            </div>
+        </div>
+
+        <!-- 快速测试 -->
+        <div class="card">
+            <h2><span class="emoji">⚡</span>快速测试</h2>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="quickTest('iPhone 15 Pro Max 256GB 钛金属')">📱 手机</button>
+                <button class="btn btn-primary" onclick="quickTest('猫粮 皇家 成猫 室内猫 10kg')">🐱 猫粮</button>
+                <button class="btn btn-primary" onclick="quickTest('Nike Air Jordan 1 运动鞋 男款')">👟 运动鞋</button>
+                <button class="btn btn-primary" onclick="quickTest('雅诗兰黛小棕瓶精华液 50ml')">💄 护肤品</button>
+                <button class="btn btn-primary" onclick="quickTest('乐高积木 哈利波特城堡 拼装玩具')">🧱 玩具</button>
+                <button class="btn btn-primary" onclick="quickTest('戴森V15吸尘器 无线手持')">🔌 家电</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';  // 同源，无需配置
+
+        // 页面加载时检查状态
+        window.onload = () => {
+            checkHealth();
+        };
+
+        // 健康检查
+        async function checkHealth() {
+            const serverDot = document.getElementById('serverStatus');
+            const serverText = document.getElementById('serverStatusText');
+            const indexDot = document.getElementById('indexStatus');
+            const indexText = document.getElementById('indexStatusText');
+
+            serverDot.className = 'status-dot loading';
+            serverText.textContent = '检测中...';
+
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                const data = await res.json();
+
+                serverDot.className = 'status-dot online';
+                serverText.textContent = '在线';
+
+                if (data.indexLoaded) {
+                    indexDot.className = 'status-dot online';
+                    indexText.textContent = '已加载';
+                } else {
+                    indexDot.className = 'status-dot offline';
+                    indexText.textContent = '未加载';
+                }
+            } catch (e) {
+                serverDot.className = 'status-dot offline';
+                serverText.textContent = '离线';
+                indexDot.className = 'status-dot offline';
+                indexText.textContent = '未知';
+            }
+        }
+
+        // 构建索引
+        async function buildIndex() {
+            const btn = document.getElementById('btnBuild');
+            const result = document.getElementById('indexResult');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>构建中...';
+            result.innerHTML = '<pre class="info">正在构建索引，请稍候（约需几分钟）...</pre>';
+
+            try {
+                const res = await fetch(`${API_BASE}/category/index`, { method: 'POST' });
+                const data = await res.json();
+
+                if (data.success) {
+                    result.innerHTML = '<pre class="success">✅ ' + data.message + '</pre>';
+                } else {
+                    result.innerHTML = '<pre class="error">❌ ' + data.error + '</pre>';
+                }
+            } catch (e) {
+                result.innerHTML = '<pre class="error">❌ 请求失败: ' + e.message + '</pre>';
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '🔨 构建索引';
+            checkHealth();
+        }
+
+        // 加载索引
+        async function loadIndex() {
+            const btn = document.getElementById('btnLoad');
+            const result = document.getElementById('indexResult');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>加载中...';
+
+            try {
+                const res = await fetch(`${API_BASE}/category/load`, { method: 'POST' });
+                const data = await res.json();
+
+                if (data.success) {
+                    result.innerHTML = '<pre class="success">✅ ' + data.message + '</pre>';
+                } else {
+                    result.innerHTML = '<pre class="error">❌ ' + data.error + '</pre>';
+                }
+            } catch (e) {
+                result.innerHTML = '<pre class="error">❌ 请求失败: ' + e.message + '</pre>';
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '📂 加载索引';
+            checkHealth();
+        }
+
+        // 删除索引
+        async function deleteIndex() {
+            if (!confirm('确定要删除索引吗？')) return;
+
+            const btn = document.getElementById('btnDelete');
+            const result = document.getElementById('indexResult');
+            
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/category/index`, { method: 'DELETE' });
+                const data = await res.json();
+
+                if (data.success) {
+                    result.innerHTML = '<pre class="success">✅ ' + data.message + '</pre>';
+                } else {
+                    result.innerHTML = '<pre class="error">❌ ' + data.error + '</pre>';
+                }
+            } catch (e) {
+                result.innerHTML = '<pre class="error">❌ 请求失败: ' + e.message + '</pre>';
+            }
+
+            btn.disabled = false;
+            checkHealth();
+        }
+
+        // 查询类目
+        async function queryCategory() {
+            const text = document.getElementById('queryText').value.trim();
+            const k = parseInt(document.getElementById('queryK').value) || 5;
+            const btn = document.getElementById('btnQuery');
+            const result = document.getElementById('queryResult');
+
+            if (!text) {
+                result.innerHTML = '<pre class="error">❌ 请输入商品文本</pre>';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>查询中...';
+            result.innerHTML = '<pre class="info">正在查询...</pre>';
+
+            try {
+                const res = await fetch(`${API_BASE}/category/predict`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, k })
+                });
+                const data = await res.json();
+
+                if (data.success && data.topK) {
+                    let html = '';
+                    data.topK.forEach((item, idx) => {
+                        const score = (item.score * 100).toFixed(1);
+                        html += `<div class="result-item">
+                            <span class="score">#${idx + 1} ${score}%</span>
+                            <span class="id">${item.id}</span>
+                        </div>`;
+                    });
+                    result.innerHTML = html || '<pre class="info">无匹配结果</pre>';
+                } else {
+                    result.innerHTML = '<pre class="error">❌ ' + (data.error || '查询失败') + '</pre>';
+                }
+            } catch (e) {
+                result.innerHTML = '<pre class="error">❌ 请求失败: ' + e.message + '</pre>';
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '🚀 查询类目';
+        }
+
+        // 快速测试
+        function quickTest(text) {
+            document.getElementById('queryText').value = text;
+            queryCategory();
+        }
+    </script>
+</body>
+</html>
