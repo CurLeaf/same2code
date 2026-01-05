@@ -35,14 +35,14 @@ const routes: Array<Route> = [
     {
         path: '/category/load',
         method: 'post',
-        middlewares: [],
+        middlewares: [express.json()],
         handler: resolvers.loadCategoryIndex
     },
     // 删除索引
     {
         path: '/category/index',
         method: 'delete',
-        middlewares: [],
+        middlewares: [express.json()],
         handler: resolvers.deleteCategoryIndex
     }
 ];

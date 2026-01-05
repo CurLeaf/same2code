@@ -1,15 +1,31 @@
 import { Request, Response } from "express";
-import { buildIndexFromTSV, loadIndex, searchTopK, isIndexLoaded, deleteIndex } from '../lib/vector';
-import path from 'path';
+import { 
+    buildIndexFromTSV, 
+    loadIndex, 
+    searchTopK, 
+    isIndexLoaded, 
+    deleteIndex,
+    getLoadedIndexes,
+    getPlatformTsvPath,
+    SUPPORTED_PLATFORMS,
+    Platform
+} from '../lib/vector';
+
+/**
+ * 验证平台参数
+ */
+const validatePlatform = (platform: any): platform is Platform => {
+    return SUPPORTED_PLATFORMS.includes(platform);
+};
 
 /**
  * 查询商品类目（返回 Top-K）
  * POST /category/predict
- * Body: { text: string, k?: number }
+ * Body: { text: string, platform?: string, k?: number }
  */
 export const queryCategory = async (req: Request, res: Response) => {
     try {
-        const { text, k = 5 } = req.body;
+        const { text, platform = 'shopify', k = 5 } = req.body;
         
         if (!text || typeof text !== 'string') {
             return res.status(400).json({
@@ -18,22 +34,30 @@ export const queryCategory = async (req: Request, res: Response) => {
             });
         }
         
+        if (!validatePlatform(platform)) {
+            return res.status(400).json({
+                success: false,
+                error: `不支持的平台: ${platform}，支持: ${SUPPORTED_PLATFORMS.join(', ')}`
+            });
+        }
+        
         // 检查索引是否已加载
-        if (!isIndexLoaded()) {
+        if (!isIndexLoaded(platform)) {
             try {
-                await loadIndex('default');
+                await loadIndex(platform);
             } catch (e) {
                 return res.status(503).json({
                     success: false,
-                    error: '索引未加载，请先构建索引'
+                    error: `索引未加载: ${platform}，请先构建索引`
                 });
             }
         }
         
-        const topK = await searchTopK(text, Number(k));
+        const topK = await searchTopK(text, platform, Number(k));
         
         return res.json({
             success: true,
+            platform,
             topK
         });
     } catch (error: any) {
@@ -48,20 +72,27 @@ export const queryCategory = async (req: Request, res: Response) => {
 /**
  * 构建向量索引
  * POST /category/index
- * Body: { tsvPath?: string }
+ * Body: { platform?: string }
  */
 export const buildIndex = async (req: Request, res: Response) => {
     try {
-        const { tsvPath } = req.body;
+        const { platform = 'shopify' } = req.body;
         
-        // 默认使用 data/categories_standard.tsv
-        const filePath = tsvPath || path.join(process.cwd(), 'data', 'categories_standard.tsv');
+        if (!validatePlatform(platform)) {
+            return res.status(400).json({
+                success: false,
+                error: `不支持的平台: ${platform}，支持: ${SUPPORTED_PLATFORMS.join(', ')}`
+            });
+        }
         
-        await buildIndexFromTSV(filePath, 'default');
+        const filePath = getPlatformTsvPath(platform);
+        
+        await buildIndexFromTSV(filePath, platform);
         
         return res.json({
             success: true,
-            message: '索引构建完成'
+            platform,
+            message: `索引构建完成: ${platform}`
         });
     } catch (error: any) {
         console.error('[Error] buildIndex:', error);
@@ -75,14 +106,25 @@ export const buildIndex = async (req: Request, res: Response) => {
 /**
  * 加载索引
  * POST /category/load
+ * Body: { platform?: string }
  */
 export const loadCategoryIndex = async (req: Request, res: Response) => {
     try {
-        await loadIndex('default');
+        const { platform = 'shopify' } = req.body;
+        
+        if (!validatePlatform(platform)) {
+            return res.status(400).json({
+                success: false,
+                error: `不支持的平台: ${platform}，支持: ${SUPPORTED_PLATFORMS.join(', ')}`
+            });
+        }
+        
+        await loadIndex(platform);
         
         return res.json({
             success: true,
-            message: '索引加载完成'
+            platform,
+            message: `索引加载完成: ${platform}`
         });
     } catch (error: any) {
         console.error('[Error] loadIndex:', error);
@@ -96,14 +138,25 @@ export const loadCategoryIndex = async (req: Request, res: Response) => {
 /**
  * 删除索引
  * DELETE /category/index
+ * Body: { platform?: string }
  */
 export const deleteCategoryIndex = async (req: Request, res: Response) => {
     try {
-        deleteIndex('default');
+        const { platform = 'shopify' } = req.body;
+        
+        if (!validatePlatform(platform)) {
+            return res.status(400).json({
+                success: false,
+                error: `不支持的平台: ${platform}，支持: ${SUPPORTED_PLATFORMS.join(', ')}`
+            });
+        }
+        
+        deleteIndex(platform);
         
         return res.json({
             success: true,
-            message: '索引已删除'
+            platform,
+            message: `索引已删除: ${platform}`
         });
     } catch (error: any) {
         console.error('[Error] deleteIndex:', error);
@@ -121,6 +174,7 @@ export const deleteCategoryIndex = async (req: Request, res: Response) => {
 export const healthCheck = async (req: Request, res: Response) => {
     return res.json({
         status: 'ok',
-        indexLoaded: isIndexLoaded()
+        supportedPlatforms: SUPPORTED_PLATFORMS,
+        loadedIndexes: getLoadedIndexes()
     });
 };
