@@ -218,3 +218,22 @@ export const getPlatformTsvPath = (platform: Platform): string => {
     return path.join(process.cwd(), 'data', `${platform}.tsv`);
 };
 
+/**
+ * 根据ID获取类目详情（用于跨平台映射）
+ * @param id 类目ID
+ * @param platform 平台名称
+ * @returns 类目对象或undefined
+ */
+export const getCategoryById = async (id: string, platform: Platform): Promise<Category | undefined> => {
+    const tsvPath = getPlatformTsvPath(platform);
+
+    if (!fs.existsSync(tsvPath)) {
+        return undefined;
+    }
+
+    const content = fs.readFileSync(tsvPath, 'utf-8');
+    const categories = parseTSV(content);
+
+    return categories.find(cat => cat.id === id);
+};
+

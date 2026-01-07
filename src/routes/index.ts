@@ -17,12 +17,26 @@ const routes: Array<Route> = [
         middlewares: [],
         handler: resolvers.healthCheck
     },
-    // 查询类目（Top-K）
+    // 查询类目（Top-K）- 单平台
     {
         path: '/category/predict',
         method: 'post',
         middlewares: [express.json()],
         handler: resolvers.queryCategory
+    },
+    // 查询所有平台类目
+    {
+        path: '/category/predict/all',
+        method: 'post',
+        middlewares: [express.json()],
+        handler: resolvers.queryAllPlatforms
+    },
+    // 链式查询：商品 -> shopify -> (ozon + yandex)
+    {
+        path: '/category/predict/chain',
+        method: 'post',
+        middlewares: [express.json()],
+        handler: resolvers.queryCategoryChain
     },
     // 构建索引
     {

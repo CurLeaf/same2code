@@ -1,0 +1,50 @@
+# 依赖
+node_modules
+npm-debug.log*
+
+# 构建输出
+build
+dist
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# 日志
+logs
+*.log
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 测试
+coverage
+.nyc_output
+
+# 临时文件
+tmp
+temp
+
+# Docker 目录本身
+docker
+
+# 文档（可选，如果需要镜像内包含文档则删除此行）
+README*.md
+*.md
+
+# 其他
+.postman
+postman.json
